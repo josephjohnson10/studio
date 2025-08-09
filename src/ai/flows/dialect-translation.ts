@@ -40,31 +40,26 @@ const prompt = ai.definePrompt({
 
 --------------------
 ## PRIMARY OBJECTIVES
-1.  **Output in Malayalam Script**: The final translated sentence must be in Malayalam script (e.g., "എൻ്റെ പേര് ജോസഫ്"). Do NOT output Manglish.
-2.  **Meaning Preservation**: The output must retain 100% of the original meaning, intent, and tone of the input sentence.
-3.  **Dialect Accuracy**: Apply vocabulary, idioms, and phrasing that are authentic to each district’s native slang style.
-4.  **No Unapproved Changes**: Do NOT alter:
+1.  **Output in Malayalam Script**: The final translated sentence must be in pure Malayalam script (e.g., "എൻ്റെ പേര് ജോസഫ്"). Do NOT output Manglish or a mix of scripts.
+2.  **Meaning Preservation**: The output must retain 100% of the original meaning, intent, and tone of the input sentence. The translation must be a direct equivalent.
+3.  **Dialect Accuracy**: Apply vocabulary, idioms, and phrasing that are authentic and natural-sounding to each district’s native slang style.
+4.  **No Unapproved Changes**: Do NOT alter the core subject matter. Preserve the following exactly as they appear in the input:
     -   Person names
     -   Place names
     -   Numbers
     -   Embedded English words (keep them in Latin script as is).
-5.  **AI Signature**: Outputs should feel natural but may contain slight uniformity in style, indicating AI generation.
-6.  **Meaning Check Factor**: For each output, include a “MeaningMatchScore” (0–100) estimating how close the slang version is to the original meaning (target ≥ 95).
+5.  **Meaning Check Factor**: For each output, include a “MeaningMatchScore” (0–100) estimating how close the slang version is to the original meaning (aim for a score of 95 or higher).
 
 --------------------
 ## SLANG INTENSITY
-Use the "SlangIntensity" parameter to control depth of slang:
--   **low**: Minimal changes, mostly formal words with slight dialect endings.
--   **medium**: A balanced mix of slang vocabulary and local sentence particles.
--   **high**: Deep slang, fully informal, with a strong district identity.
+Use the "SlangIntensity" parameter to control the depth of slang:
+-   **low**: Minimal changes, mostly formal words with slight dialect endings or particles.
+-   **medium**: A balanced mix of common slang vocabulary and local sentence structure.
+-   **high**: Deep, informal slang with a strong, unmistakable district identity.
 
 --------------------
-## OUTPUT FORMAT (strict — no deviation)
-For each of the 14 districts, output exactly this structure in the specified order.
-
-District: <DistrictName>
-Slang (SlangIntensity): <ConvertedSentenceInMalayalamScript>
-MeaningMatchScore: <0-100>
+## OUTPUT FORMAT (Strict JSON Array)
+Your entire output must be a single JSON array containing exactly 14 objects, one for each district, in the specified order. Do not add any text before or after the JSON array.
 
 Order of districts:
 1. Thiruvananthapuram
@@ -87,42 +82,32 @@ Order of districts:
 INPUT: "Ente peru Joseph. Njan evideya pokunnu?"
 SlangIntensity: medium
 
-OUTPUT:
-District: Thiruvananthapuram
-Slang (medium): എൻ്റെ പേര് ജോസഫ്. ഞാൻ എവിടെ പോകുവാ?
-MeaningMatchScore: 98
-
-District: Kollam
-Slang (medium): എൻ്റെ പേര് ജോസഫ്. ഞാൻ എങ്ങോട്ട് പോകുവാ?
-MeaningMatchScore: 97
-
+(The AI's output should be a single, raw JSON array like the one below, not plain text)
+\`\`\`json
+[
+  {
+    "district": "Thiruvananthapuram",
+    "slang": "എൻ്റെ പേര് ജോസഫ്. ഞാൻ എവിടെ പോകുവാ?",
+    "meaningMatchScore": 98
+  },
+  {
+    "district": "Kollam",
+    "slang": "എൻ്റെ പേര് ജോസഫ്. ഞാൻ എങ്ങോട്ട് പോകുവാ?",
+    "meaningMatchScore": 97
+  }
+]
+\`\`\`
 (...continue for all 14 districts)
 
 --------------------
 ## TASK
-Convert the following Manglish sentence into Malayalam script slang for each district using the given SlangIntensity, while maintaining a ≥95 MeaningMatchScore for each output.
+Convert the following Manglish sentence into Malayalam script slang for all 14 districts, using the given SlangIntensity. Ensure your final output is a single, complete JSON array.
 
 INPUT: "{{{sentence}}}"
 SlangIntensity: {{{slangIntensity}}}
 `,
 });
 
-const districtList = [
-  'Thiruvananthapuram',
-  'Kollam',
-  'Pathanamthitta',
-  'Alappuzha',
-  'Kottayam',
-  'Idukki',
-  'Ernakulam',
-  'Thrissur',
-  'Palakkad',
-  'Malappuram',
-  'Kozhikode',
-  'Wayanad',
-  'Kannur',
-  'Kasaragod',
-];
 
 const dialectTranslationFlow = ai.defineFlow(
   {
@@ -132,7 +117,6 @@ const dialectTranslationFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    //console.log(output);
     return output!;
   }
 );

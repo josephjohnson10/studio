@@ -251,9 +251,9 @@ export default function DialectTranslator() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8 max-w-7xl mx-auto">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
       <audio ref={audioRef} onEnded={stopAllAudio} />
-      <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
+      <div className="md:col-span-2">
         <Card>
           <CardHeader>
             <CardTitle>Dialect Translations (Malayalam)</CardTitle>
@@ -263,7 +263,7 @@ export default function DialectTranslator() {
           </CardHeader>
           <CardContent>
             {loading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {Array.from({ length: 14 }).map((_, index) => (
                   <Card key={index}>
                     <CardHeader>
@@ -284,7 +284,7 @@ export default function DialectTranslator() {
               </div>
             )}
             {!loading && translations && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
                   const currentAudioState = audioState[item.district] || { loading: false, playing: false, data: null };
@@ -314,7 +314,7 @@ export default function DialectTranslator() {
                           <Progress value={item.meaningMatchScore} className="h-2" />
                         </div>
                         <Separator className="my-2" />
-                        <div className="flex items-center justify-start gap-1 w-full">
+                        <div className="flex items-center justify-start flex-wrap gap-1 w-full">
                           <Button variant="ghost" size="sm" onClick={() => handlePlayAudio(item.slang, item.district)} disabled={currentAudioState.loading}>
                              {currentAudioState.loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : currentAudioState.playing ? <VolumeX className="mr-2 h-4 w-4"/> : <Volume2 className="mr-2 h-4 w-4"/>}
                             {currentAudioState.playing ? 'Stop' : 'Listen'}
@@ -355,7 +355,7 @@ export default function DialectTranslator() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
+      <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-1">
         <Card className="sticky top-20">
             <CardHeader>
                 <CardTitle>Converter</CardTitle>
