@@ -73,7 +73,8 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+             languageCode: 'ml-IN',
+             gender: 'female',
           },
         },
       },
