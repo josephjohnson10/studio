@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState } from 'react';
+import React, { useState, useTransition, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,10 +23,14 @@ import {
   Sprout,
   Trees,
   Wheat,
+  Search,
 } from 'lucide-react';
+import debounce from 'lodash.debounce';
 
 import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
-import { getDialectTranslations, DialectTranslationServerInput } from '@/app/actions';
+import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
+import { getDialectTranslations, analyzeSentence, DialectTranslationServerInput } from '@/app/actions';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -36,6 +40,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from './ui/badge';
 
 const formSchema = z.object({
   sentence: z
@@ -59,6 +64,7 @@ const districtIcons: { [key: string]: ElementType } = {
   Wayanad: Trees,
   Kannur: Castle,
   Kasaragod: Languages,
+  Standard: Languages,
 };
 
 const intensityLabels: { [key: number]: string } = {
@@ -70,6 +76,8 @@ const intensityLabels: { [key: number]: string } = {
 export default function DialectTranslator() {
   const [translations, setTranslations] =
     useState<DialectTranslationOutput | null>(null);
+  const [analysis, setAnalysis] = useState<SentenceAnalysisOutput | null>(null);
+  const [isAnalyzing, startAnalyzing] = useTransition();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -80,6 +88,31 @@ export default function DialectTranslator() {
       slangIntensity: 1, // Medium
     },
   });
+
+  const debouncedAnalysis = useCallback(
+    debounce((sentence: string) => {
+      if (sentence.trim().length > 5) {
+        startAnalyzing(async () => {
+          try {
+            const result = await analyzeSentence({ sentence });
+            setAnalysis(result);
+          } catch (error) {
+            console.error('Failed to analyze sentence', error);
+            setAnalysis(null);
+          }
+        });
+      } else {
+        setAnalysis(null);
+      }
+    }, 500),
+    []
+  );
+  
+  const handleSentenceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    form.setValue('sentence', e.target.value);
+    debouncedAnalysis(e.target.value);
+  };
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
@@ -213,12 +246,39 @@ export default function DialectTranslator() {
                         placeholder="e.g., Ente peru Joseph. Njan evideya pokunnu?"
                         className="resize-none min-h-[160px]"
                         {...field}
+                        onChange={handleSentenceChange}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <div className="h-12">
+                {(isAnalyzing || analysis) && (
+                  <Card className="bg-secondary/50 border-primary/20">
+                    <CardContent className="p-3">
+                      {isAnalyzing ? (
+                        <div className="flex items-center gap-3 text-muted-foreground animate-pulse">
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Analyzing input...</span>
+                        </div>
+                      ) : analysis ? (
+                        <div className="flex items-center gap-3">
+                          <Search className="h-5 w-5 text-primary" />
+                          <div className="text-sm">
+                            <span className="font-semibold text-primary">Input Analysis:</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Badge variant={analysis.isStandard ? 'default' : 'destructive'}>{analysis.dialect}</Badge>
+                                <span className='text-muted-foreground text-xs'>({analysis.confidence}%)</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
 
               <Separator />
 
