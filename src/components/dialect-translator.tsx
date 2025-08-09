@@ -24,12 +24,23 @@ import {
   Trees,
   Wheat,
   Search,
+  Book,
+  Repeat,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
 import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
-import { getDialectTranslations, analyzeSentenceApi, DialectTranslationServerInput } from '@/app/actions';
+import type { ReverseTranslationOutput } from '@/ai/flows/reverse-translation';
+import type { CulturalInsightOutput } from '@/ai/flows/cultural-insights';
+
+import { 
+  getDialectTranslations, 
+  analyzeSentenceApi, 
+  reverseTranslateApi,
+  getCulturalInsightsApi,
+  DialectTranslationServerInput 
+} from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +52,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const formSchema = z.object({
   sentence: z
@@ -73,12 +85,21 @@ const intensityLabels: { [key: number]: string } = {
   2: 'High',
 };
 
+type DialogState = {
+  type: 'reverse' | 'insight' | null;
+  data: ReverseTranslationOutput | CulturalInsightOutput | null;
+  loading: boolean;
+  district?: string;
+};
+
 export default function DialectTranslator() {
   const [translations, setTranslations] =
     useState<DialectTranslationOutput | null>(null);
   const [analysis, setAnalysis] = useState<SentenceAnalysisOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [loading, setLoading] = useState(false);
+  const [dialogState, setDialogState] = useState<DialogState>({ type: null, data: null, loading: false });
+
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -145,8 +166,30 @@ export default function DialectTranslator() {
     }
   }
 
+  const handleReverseTranslate = async (slang: string, district: string) => {
+    setDialogState({ type: 'reverse', data: null, loading: true, district });
+    try {
+      const result = await reverseTranslateApi({ slangSentence: slang, district });
+      setDialogState({ type: 'reverse', data: result, loading: false, district });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to reverse translate.', variant: 'destructive' });
+      setDialogState({ type: null, data: null, loading: false });
+    }
+  };
+
+  const handleCulturalInsights = async (district: string) => {
+    setDialogState({ type: 'insight', data: null, loading: true, district });
+    try {
+      const result = await getCulturalInsightsApi({ district });
+      setDialogState({ type: 'insight', data: result, loading: false, district });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to get cultural insights.', variant: 'destructive' });
+      setDialogState({ type: null, data: null, loading: false });
+    }
+  };
+
   return (
-    <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8 max-w-6xl mx-auto">
+    <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8 max-w-7xl mx-auto">
       <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
         <Card>
           <CardHeader>
@@ -195,7 +238,7 @@ export default function DialectTranslator() {
                         </p>
                       </CardContent>
                       <CardFooter className="flex flex-col items-start gap-2">
-                        <div className="w-full">
+                         <div className="w-full">
                           <div className="flex justify-between mb-1">
                             <span className="text-xs font-medium text-muted-foreground">
                               Meaning Match
@@ -205,6 +248,23 @@ export default function DialectTranslator() {
                             </span>
                           </div>
                           <Progress value={item.meaningMatchScore} className="h-2" />
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex items-center justify-start gap-2 w-full">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" onClick={() => handleReverseTranslate(item.slang, item.district)}>
+                                <Repeat className="mr-2 h-4 w-4"/> Translate Back
+                              </Button>
+                            </DialogTrigger>
+                          </Dialog>
+                           <Dialog>
+                            <DialogTrigger asChild>
+                               <Button variant="ghost" size="sm" onClick={() => handleCulturalInsights(item.district)}>
+                                <Book className="mr-2 h-4 w-4"/> Insights
+                              </Button>
+                            </DialogTrigger>
+                          </Dialog>
                         </div>
                       </CardFooter>
                     </Card>
@@ -331,6 +391,43 @@ export default function DialectTranslator() {
           </CardContent>
         </Card>
       </div>
+
+       <Dialog open={dialogState.loading || dialogState.data !== null} onOpenChange={() => setDialogState({ type: null, data: null, loading: false })}>
+        <DialogContent>
+          {dialogState.loading ? (
+            <div className="flex items-center justify-center p-8">
+              <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {dialogState.type === 'reverse' && dialogState.data && 'standardSentence' in dialogState.data && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Reverse Translation: {dialogState.district}</DialogTitle>
+                    <DialogDescription>The slang sentence translated back to standard Manglish.</DialogDescription>
+                  </DialogHeader>
+                  <p className="text-lg font-semibold text-center py-4">"{dialogState.data.standardSentence}"</p>
+                </>
+              )}
+              {dialogState.type === 'insight' && dialogState.data && 'insight' in dialogState.data && (
+                 <>
+                  <DialogHeader>
+                    <DialogTitle>Cultural Insight: {dialogState.district}</DialogTitle>
+                     <DialogDescription>Interesting facts about the {dialogState.district} dialect.</DialogDescription>
+                  </DialogHeader>
+                  <div className="prose prose-sm max-w-none">
+                    <p>{dialogState.data.insight}</p>
+                    <h4 className="font-semibold">Popular Phrases:</h4>
+                    <ul>
+                      {dialogState.data.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
+                    </ul>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

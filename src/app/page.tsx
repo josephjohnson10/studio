@@ -27,7 +27,7 @@ export default function Home() {
         </h1>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <div className="mx-auto grid w-full max-w-6xl gap-2">
+        <div className="mx-auto grid w-full max-w-7xl gap-2">
           <p className="text-muted-foreground">
             Your personal AI Malayalam dialect converter. Translate any Manglish
             sentence into the unique slangs of all 14 Kerala districts.

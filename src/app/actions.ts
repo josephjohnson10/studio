@@ -3,6 +3,9 @@
 import { z } from 'zod';
 import { dialectTranslation, DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import { analyzeSentence, SentenceAnalysisInput, SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
+import { reverseTranslation, ReverseTranslationInput, ReverseTranslationOutput } from '@/ai/flows/reverse-translation';
+import { getCulturalInsights, CulturalInsightInput, CulturalInsightOutput } from '@/ai/flows/cultural-insights';
+
 
 const DialectTranslationInputSchema = z.object({
   sentence: z.string().describe('The sentence to translate into Malayalam dialects (in Manglish).'),
@@ -44,4 +47,43 @@ export async function analyzeSentenceApi(input: SentenceAnalysisInput): Promise<
         console.error('Error in sentence analysis flow:', error);
         throw new Error('Failed to analyze sentence due to a server error.');
     }
+}
+
+const ReverseTranslationRequestSchema = z.object({
+  slangSentence: z.string(),
+  district: z.string(),
+});
+
+export async function reverseTranslateApi(input: ReverseTranslationInput): Promise<ReverseTranslationOutput> {
+  const parsedInput = ReverseTranslationRequestSchema.safeParse(input);
+  if (!parsedInput.success) {
+    throw new Error('Invalid input for reverse translation');
+  }
+
+  try {
+    const result = await reverseTranslation(parsedInput.data);
+    return result;
+  } catch (error) {
+    console.error('Error in reverse translation flow:', error);
+    throw new Error('Failed to reverse translate due to a server error.');
+  }
+}
+
+const CulturalInsightRequestSchema = z.object({
+  district: z.string(),
+});
+
+export async function getCulturalInsightsApi(input: CulturalInsightInput): Promise<CulturalInsightOutput> {
+  const parsedInput = CulturalInsightRequestSchema.safeParse(input);
+  if (!parsedInput.success) {
+    throw new Error('Invalid input for cultural insights');
+  }
+
+  try {
+    const result = await getCulturalInsights(parsedInput.data);
+    return result;
+  } catch (error) {
+    console.error('Error in cultural insights flow:', error);
+    throw new Error('Failed to get cultural insights due to a server error.');
+  }
 }
