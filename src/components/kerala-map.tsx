@@ -14,7 +14,7 @@ const districtPaths: { [key: string]: string } = {
   Thrissur: 'M105 105L118 115L130 110L142 110L135 125L124 135L111 130L105 120L105 105Z',
   Ernakulam: 'M105 120L111 130L124 135L135 125L130 145L124 155L111 150L100 140L105 120Z',
   Idukki: 'M130 145L135 125L142 110L150 120L155 135L150 150L142 160L130 145Z',
-tKottayam: 'M100 140L111 150L124 155L130 145L124 165L111 170L100 160L100 140Z',
+  Kottayam: 'M100 140L111 150L124 155L130 145L124 165L111 170L100 160L100 140Z',
   Alappuzha: 'M95 165L100 160L111 170L105 180L100 185L95 175L95 165Z',
   Pathanamthitta: 'M105 180L111 170L124 165L130 175L124 185L111 190L105 180Z',
   Kollam: 'M100 185L105 180L111 190L118 200L111 210L100 200L100 185Z',
@@ -23,13 +23,13 @@ tKottayam: 'M100 140L111 150L124 155L130 145L124 165L111 170L100 160L100 140Z',
 
 interface KeralaMapProps {
   className?: string;
-  highlightedDistricts?: string[];
+  highlightedDistrict?: string | null;
   onDistrictClick?: (district: string) => void;
 }
 
 export const KeralaMap: React.FC<KeralaMapProps> = ({
   className,
-  highlightedDistricts = [],
+  highlightedDistrict = null,
   onDistrictClick,
 }) => {
   return (
@@ -40,7 +40,7 @@ export const KeralaMap: React.FC<KeralaMapProps> = ({
     >
       <g>
         {Object.entries(districtPaths).map(([name, d]) => {
-          const isHighlighted = highlightedDistricts.includes(name);
+          const isHighlighted = highlightedDistrict === name;
           return (
             <path
               key={name}
@@ -49,7 +49,7 @@ export const KeralaMap: React.FC<KeralaMapProps> = ({
                 'stroke-primary/50 fill-secondary stroke-2 transition-all duration-300',
                 onDistrictClick && 'cursor-pointer',
                 isHighlighted
-                  ? 'fill-primary/80 stroke-primary'
+                  ? 'fill-accent/80 stroke-accent'
                   : 'hover:fill-primary/30'
               )}
               onClick={() => onDistrictClick?.(name)}

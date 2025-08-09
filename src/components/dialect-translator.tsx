@@ -75,6 +75,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { KeralaMap } from './kerala-map';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   sentence: z
@@ -154,6 +155,7 @@ export default function DialectTranslator() {
   const [culturalInsightsResult, setCulturalInsightsResult] = useState<CulturalInsightOutput | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [highlightedDistrict, setHighlightedDistrict] = useState<string | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -190,6 +192,7 @@ export default function DialectTranslator() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setTranslations(null);
+    setHighlightedDistrict(null);
 
     const intensityMap: Array<'low' | 'medium' | 'high'> = [
       'low',
@@ -252,8 +255,8 @@ export default function DialectTranslator() {
   };
   
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
-      <div className="md:col-span-2 lg:col-start-1">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-8 max-w-7xl w-full mx-auto">
+      <div className="lg:col-span-2 xl:col-span-3">
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Dialect Translations (Malayalam)</CardTitle>
@@ -263,7 +266,7 @@ export default function DialectTranslator() {
           </CardHeader>
           <CardContent>
             {loading && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 14 }).map((_, index) => (
                   <Card key={index}>
                     <CardHeader>
@@ -284,14 +287,20 @@ export default function DialectTranslator() {
               </div>
             )}
             {!loading && translations && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
                   
                   return (
                     <Card
                       key={item.district}
-                      className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300"
+                      className={cn(
+                        "flex flex-col border-primary/20 hover:border-primary/50 transition-all duration-300 cursor-pointer",
+                        highlightedDistrict === item.district ? 'border-primary/80 scale-105 shadow-lg' : 'hover:scale-102'
+                      )}
+                      onMouseEnter={() => setHighlightedDistrict(item.district)}
+                      onMouseLeave={() => setHighlightedDistrict(null)}
+                      onClick={() => setHighlightedDistrict(item.district)}
                     >
                       <CardHeader>
                         <CardTitle className="flex items-center gap-3 font-headline text-lg">
@@ -324,40 +333,47 @@ export default function DialectTranslator() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleCopyToClipboard(item.slang)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyToClipboard(item.slang)
+                            }}
                           >
                             <ClipboardCopy className="mr-2 h-4 w-4" /> Copy
                           </Button>
-                          <ActionDialog
-                              title={`Reverse Translation: ${item.district}`}
-                              triggerIcon={Repeat}
-                              triggerText="Translate Back"
-                              onOpen={() => handleReverseTranslate(item.slang, item.district)}
-                              isLoading={isActionLoading}
-                              error={actionError}
-                            >
-                              {reverseTranslationResult && (
-                                <p className="p-4 text-lg">{reverseTranslationResult.standardSentence}</p>
-                              )}
-                            </ActionDialog>
+                          <div onClick={(e) => e.stopPropagation()}>
                             <ActionDialog
-                              title={`Cultural Insight: ${item.district}`}
-                              triggerIcon={Info}
-                              triggerText="Insights"
-                              onOpen={() => handleGetCulturalInsights(item.district)}
-                              isLoading={isActionLoading}
-                              error={actionError}
-                            >
-                              {culturalInsightsResult && (
-                                <div className="space-y-4 p-2">
-                                  <p>{culturalInsightsResult.insight}</p>
-                                  <h4 className="font-semibold">Popular Phrases:</h4>
-                                  <ul className="list-disc list-inside space-y-2">
-                                    {culturalInsightsResult.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
-                                  </ul>
-                                </div>
-                              )}
-                            </ActionDialog>
+                                title={`Reverse Translation: ${item.district}`}
+                                triggerIcon={Repeat}
+                                triggerText="Translate Back"
+                                onOpen={() => handleReverseTranslate(item.slang, item.district)}
+                                isLoading={isActionLoading}
+                                error={actionError}
+                              >
+                                {reverseTranslationResult && (
+                                  <p className="p-4 text-lg">{reverseTranslationResult.standardSentence}</p>
+                                )}
+                              </ActionDialog>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ActionDialog
+                                title={`Cultural Insight: ${item.district}`}
+                                triggerIcon={Info}
+                                triggerText="Insights"
+                                onOpen={() => handleGetCulturalInsights(item.district)}
+                                isLoading={isActionLoading}
+                                error={actionError}
+                              >
+                                {culturalInsightsResult && (
+                                  <div className="space-y-4 p-2">
+                                    <p>{culturalInsightsResult.insight}</p>
+                                    <h4 className="font-semibold">Popular Phrases:</h4>
+                                    <ul className="list-disc list-inside space-y-2">
+                                      {culturalInsightsResult.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
+                              </ActionDialog>
+                          </div>
                         </div>
                       </CardFooter>
                     </Card>
@@ -367,7 +383,7 @@ export default function DialectTranslator() {
             )}
             {!loading && !translations && (
                <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px] bg-secondary/30">
-                 <KeralaMap className="w-full max-w-md h-auto" highlightedDistricts={[]} />
+                 <KeralaMap className="w-full max-w-sm h-auto" />
                  <h3 className="text-xl font-bold mt-4">
                    Translate Manglish to Local Dialects
                  </h3>
@@ -379,7 +395,7 @@ export default function DialectTranslator() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-1 lg:col-start-2 lg:row-start-1">
+      <div className="grid auto-rows-max items-start gap-4 lg:gap-8 lg:col-span-1 xl:col-span-1">
         <Card className="sticky top-20 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Converter</CardTitle>
@@ -404,7 +420,7 @@ export default function DialectTranslator() {
                       <FormControl>
                         <Textarea
                           placeholder="e.g., Ente peru Joseph. Njan evideya pokunnu?"
-                          className="resize-none min-h-[160px]"
+                          className="resize-none min-h-[120px]"
                           {...field}
                           onChange={handleSentenceChange}
                         />
@@ -507,6 +523,19 @@ export default function DialectTranslator() {
             </Form>
           </CardContent>
         </Card>
+        {(translations || !loading) && (
+          <Card className="sticky top-[30rem]">
+            <CardHeader>
+                <CardTitle>Kerala Map</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <KeralaMap 
+                    highlightedDistrict={highlightedDistrict}
+                    onDistrictClick={(district) => setHighlightedDistrict(district)}
+                />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
