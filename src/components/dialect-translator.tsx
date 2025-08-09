@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback } from 'react';
+import React, { useState, useTransition, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import {
   BookOpen,
   Building2,
   Castle,
+  ClipboardCopy,
   Factory,
   Languages,
   LoaderCircle,
@@ -19,13 +20,15 @@ import {
   Palmtree,
   Plane,
   Sailboat,
+  Search,
+  Book,
+  Repeat,
   Sparkles,
   Sprout,
   Trees,
   Wheat,
-  Search,
-  Book,
-  Repeat,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -39,6 +42,7 @@ import {
   analyzeSentenceApi, 
   reverseTranslateApi,
   getCulturalInsightsApi,
+  textToSpeechApi,
   DialectTranslationServerInput 
 } from '@/app/actions';
 
@@ -52,7 +56,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const formSchema = z.object({
   sentence: z
@@ -92,6 +96,14 @@ type DialogState = {
   district?: string;
 };
 
+type AudioState = {
+  [district: string]: {
+    loading: boolean;
+    playing: boolean;
+    data: string | null;
+  };
+};
+
 export default function DialectTranslator() {
   const [translations, setTranslations] =
     useState<DialectTranslationOutput | null>(null);
@@ -99,8 +111,10 @@ export default function DialectTranslator() {
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [loading, setLoading] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>({ type: null, data: null, loading: false });
+  const [audioState, setAudioState] = useState<AudioState>({});
 
   const { toast } = useToast();
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -138,6 +152,7 @@ export default function DialectTranslator() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setTranslations(null);
+    setAudioState({});
 
     const intensityMap: Array<'low' | 'medium' | 'high'> = [
       'low',
@@ -187,9 +202,57 @@ export default function DialectTranslator() {
       setDialogState({ type: null, data: null, loading: false });
     }
   };
+  
+  const stopAllAudio = () => {
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+    }
+    setAudioState(prev => {
+        const newState = { ...prev };
+        Object.keys(newState).forEach(d => {
+            newState[d] = { ...newState[d], playing: false };
+        });
+        return newState;
+    });
+  }
+
+  const handlePlayAudio = async (text: string, district: string) => {
+    stopAllAudio();
+    
+    // If we have the audio data already, just play it
+    if (audioState[district]?.data) {
+      if (audioRef.current) {
+        audioRef.current.src = audioState[district].data!;
+        audioRef.current.play();
+        setAudioState(prev => ({...prev, [district]: {...prev[district], playing: true}}));
+      }
+      return;
+    }
+
+    setAudioState(prev => ({...prev, [district]: { loading: true, playing: false, data: null }}));
+    try {
+      const result = await textToSpeechApi({ text });
+      setAudioState(prev => ({...prev, [district]: {...prev[district], data: result.audioDataUri, loading: false}}));
+       if (audioRef.current) {
+        audioRef.current.src = result.audioDataUri;
+        audioRef.current.play();
+        setAudioState(prev => ({...prev, [district]: {...prev[district], playing: true}}));
+      }
+    } catch(error) {
+      toast({ title: 'Error', description: 'Failed to generate audio.', variant: 'destructive' });
+      setAudioState(prev => ({...prev, [district]: {...prev[district], loading: false}}));
+    }
+  };
+
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copied!', description: 'Translation copied to clipboard.' });
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8 max-w-7xl mx-auto">
+      <audio ref={audioRef} onEnded={stopAllAudio} />
       <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
         <Card>
           <CardHeader>
@@ -224,6 +287,7 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
+                  const currentAudioState = audioState[item.district] || { loading: false, playing: false, data: null };
                   return (
                     <Card key={item.district} className="flex flex-col border-primary/20">
                       <CardHeader>
@@ -250,7 +314,14 @@ export default function DialectTranslator() {
                           <Progress value={item.meaningMatchScore} className="h-2" />
                         </div>
                         <Separator className="my-2" />
-                        <div className="flex items-center justify-start gap-2 w-full">
+                        <div className="flex items-center justify-start gap-1 w-full">
+                          <Button variant="ghost" size="sm" onClick={() => handlePlayAudio(item.slang, item.district)} disabled={currentAudioState.loading}>
+                             {currentAudioState.loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : currentAudioState.playing ? <VolumeX className="mr-2 h-4 w-4"/> : <Volume2 className="mr-2 h-4 w-4"/>}
+                            {currentAudioState.playing ? 'Stop' : 'Listen'}
+                          </Button>
+                           <Button variant="ghost" size="sm" onClick={() => handleCopyToClipboard(item.slang)}>
+                            <ClipboardCopy className="mr-2 h-4 w-4"/> Copy
+                          </Button>
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="ghost" size="sm" onClick={() => handleReverseTranslate(item.slang, item.district)}>
@@ -394,31 +465,30 @@ export default function DialectTranslator() {
 
        <Dialog open={dialogState.loading || dialogState.data !== null} onOpenChange={() => setDialogState({ type: null, data: null, loading: false })}>
         <DialogContent>
-          {dialogState.loading ? (
-             <DialogHeader>
-                <DialogTitle>Loading...</DialogTitle>
+          <DialogHeader>
+              <DialogTitle>
+                {dialogState.loading && "Loading..."}
+                {!dialogState.loading && dialogState.type === 'reverse' && `Reverse Translation: ${dialogState.district}`}
+                {!dialogState.loading && dialogState.type === 'insight' && `Cultural Insight: ${dialogState.district}`}
+              </DialogTitle>
+             {dialogState.loading && (
                 <div className="flex items-center justify-center p-8">
                   <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 </div>
+            )}
             </DialogHeader>
-          ) : (
+          {!dialogState.loading && (
             <>
               {dialogState.type === 'reverse' && dialogState.data && 'standardSentence' in dialogState.data && (
                 <>
-                  <DialogHeader>
-                    <DialogTitle>Reverse Translation: {dialogState.district}</DialogTitle>
-                    <DialogDescription>The slang sentence translated back to standard Malayalam.</DialogDescription>
-                  </DialogHeader>
+                  <DialogDescription>The slang sentence translated back to standard Malayalam.</DialogDescription>
                   <p className="text-xl font-semibold text-center py-4 font-body">"{dialogState.data.standardSentence}"</p>
                 </>
               )}
               {dialogState.type === 'insight' && dialogState.data && 'insight' in dialogState.data && (
                  <>
-                  <DialogHeader>
-                    <DialogTitle>Cultural Insight: {dialogState.district}</DialogTitle>
-                     <DialogDescription>Interesting facts about the {dialogState.district} dialect.</DialogDescription>
-                  </DialogHeader>
-                  <div className="prose prose-sm max-w-none">
+                  <DialogDescription>Interesting facts about the {dialogState.district} dialect.</DialogDescription>
+                  <div className="prose prose-sm max-w-none pt-4">
                     <p>{dialogState.data.insight}</p>
                     <h4 className="font-semibold">Popular Phrases:</h4>
                     <ul className='font-body'>
