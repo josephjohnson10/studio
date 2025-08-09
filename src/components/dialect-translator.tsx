@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback } from 'react';
+import React, { useState, useTransition, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,6 +27,7 @@ import {
   Trees,
   Wheat,
   Info,
+  Volume2,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -40,6 +41,7 @@ import {
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
+  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -76,6 +78,7 @@ import {
 } from '@/components/ui/dialog';
 import { KeralaMap } from './kerala-map';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const formSchema = z.object({
   sentence: z
@@ -152,10 +155,12 @@ export default function DialectTranslator() {
   const { toast } = useToast();
 
   const [reverseTranslationResult, setReverseTranslationResult] = useState<ReverseTranslationOutput | null>(null);
-  const [culturalInsightsResult, setCulturalInsightsResult] = useState<CulturalInsightOutput | null>(null);
+  const [culturalInsights, setCulturalInsights] = useState<CulturalInsightOutput | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [highlightedDistrict, setHighlightedDistrict] = useState<string | null>(null);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -189,10 +194,26 @@ export default function DialectTranslator() {
     debouncedAnalysis(e.target.value);
   };
 
+  const handleGetCulturalInsights = useCallback(async (district: string) => {
+    setIsActionLoading(true);
+    setActionError(null);
+    setCulturalInsights(null);
+    try {
+      const result = await getCulturalInsightsApi({ district });
+      setCulturalInsights(result);
+    } catch (error) {
+      setActionError('Failed to get cultural insights.');
+      setCulturalInsights(null);
+    } finally {
+      setIsActionLoading(false);
+    }
+  }, []);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setTranslations(null);
     setHighlightedDistrict(null);
+    setCulturalInsights(null);
 
     const intensityMap: Array<'low' | 'medium' | 'high'> = [
       'low',
@@ -207,6 +228,10 @@ export default function DialectTranslator() {
     try {
       const result = await getDialectTranslations(input);
       setTranslations(result);
+      if (result && result.length > 0) {
+        setHighlightedDistrict(result[0].district);
+        await handleGetCulturalInsights(result[0].district);
+      }
     } catch (error) {
       toast({
         title: 'Translation Error',
@@ -240,19 +265,29 @@ export default function DialectTranslator() {
     }
   };
 
-  const handleGetCulturalInsights = async (district: string) => {
-    setIsActionLoading(true);
-    setActionError(null);
-    setCulturalInsightsResult(null);
+  const handleListen = async (text: string) => {
+    setIsAudioLoading(true);
     try {
-      const result = await getCulturalInsightsApi({ district });
-      setCulturalInsightsResult(result);
+      const { audioDataUri } = await textToSpeechApi({ text });
+      if (audioRef.current) {
+        audioRef.current.src = audioDataUri;
+        await audioRef.current.play();
+      }
     } catch (error) {
-      setActionError('Failed to get cultural insights.');
+       toast({
+        title: 'Audio Error',
+        description: 'Failed to generate audio. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsActionLoading(false);
+      setIsAudioLoading(false);
     }
   };
+
+  const handleCardClick = (district: string) => {
+    setHighlightedDistrict(district);
+    handleGetCulturalInsights(district);
+  }
   
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-8 max-w-7xl w-full mx-auto">
@@ -299,8 +334,8 @@ export default function DialectTranslator() {
                         highlightedDistrict === item.district ? 'border-primary/80 scale-105 shadow-lg' : 'hover:scale-102'
                       )}
                       onMouseEnter={() => setHighlightedDistrict(item.district)}
-                      onMouseLeave={() => setHighlightedDistrict(null)}
-                      onClick={() => setHighlightedDistrict(item.district)}
+                      onMouseLeave={() => setHighlightedDistrict(translations.find(t => t.district === highlightedDistrict)?.district || null)}
+                      onClick={() => handleCardClick(item.district)}
                     >
                       <CardHeader>
                         <CardTitle className="flex items-center gap-3 font-headline text-lg">
@@ -333,6 +368,15 @@ export default function DialectTranslator() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleListen(item.slang)}}
+                            disabled={isAudioLoading}
+                          >
+                            {isAudioLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Volume2 className="mr-2 h-4 w-4" />}
+                            Listen
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCopyToClipboard(item.slang)
@@ -354,26 +398,7 @@ export default function DialectTranslator() {
                                 )}
                               </ActionDialog>
                           </div>
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <ActionDialog
-                                title={`Cultural Insight: ${item.district}`}
-                                triggerIcon={Info}
-                                triggerText="Insights"
-                                onOpen={() => handleGetCulturalInsights(item.district)}
-                                isLoading={isActionLoading}
-                                error={actionError}
-                              >
-                                {culturalInsightsResult && (
-                                  <div className="space-y-4 p-2">
-                                    <p>{culturalInsightsResult.insight}</p>
-                                    <h4 className="font-semibold">Popular Phrases:</h4>
-                                    <ul className="list-disc list-inside space-y-2">
-                                      {culturalInsightsResult.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
-                                    </ul>
-                                  </div>
-                                )}
-                              </ActionDialog>
-                          </div>
+                          
                         </div>
                       </CardFooter>
                     </Card>
@@ -523,20 +548,54 @@ export default function DialectTranslator() {
             </Form>
           </CardContent>
         </Card>
-        {(translations || !loading) && (
-          <Card className="sticky top-[30rem]">
+        
+        <Card className="sticky top-[30rem]">
             <CardHeader>
                 <CardTitle>Kerala Map</CardTitle>
             </CardHeader>
             <CardContent>
                 <KeralaMap 
                     highlightedDistrict={highlightedDistrict}
-                    onDistrictClick={(district) => setHighlightedDistrict(district)}
+                    onDistrictClick={(district) => handleCardClick(district)}
                 />
+            </CardContent>
+        </Card>
+
+        {culturalInsights && (
+          <Card className="sticky top-[50rem]">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Info className="h-6 w-6 text-primary" />
+                  Cultural Insight
+                </CardTitle>
+                <CardDescription>{highlightedDistrict}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isActionLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <LoaderCircle className="animate-spin h-8 w-8 text-primary" />
+                </div>
+              ) : actionError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
+              ): (
+                <>
+                  <p className="text-sm">{culturalInsights.insight}</p>
+                  <div>
+                    <h4 className="font-semibold mb-2">Popular Phrases:</h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                      {culturalInsights.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
+                    </ul>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
       </div>
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }
