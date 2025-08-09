@@ -113,7 +113,7 @@ The application will be available at `http://localhost:9002`.
 ---
 
 ## Team Contributions
-- **Joseph Johnson:** [Specific contributions]
+- **Joseph Johnson:** FULL PROJECT
 
 ---
 
