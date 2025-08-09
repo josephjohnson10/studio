@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback, useRef } from 'react';
+import React, { useState, useTransition, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,7 +28,6 @@ import {
   Trees,
   Wheat,
   Info,
-  Volume2,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -36,14 +35,12 @@ import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
 import type { ReverseTranslationOutput } from '@/ai/flows/reverse-translation';
 import type { CulturalInsightOutput } from '@/ai/flows/cultural-insights';
-import type { TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 
 import {
   getDialectTranslations,
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
-  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -159,9 +156,6 @@ export default function DialectTranslator() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const [audioLoading, setAudioLoading] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -258,29 +252,8 @@ export default function DialectTranslator() {
     }
   };
 
-  const handleListen = async (text: string, district: string) => {
-    setAudioLoading(district);
-    try {
-      const { audioDataUri } = await textToSpeechApi({ text });
-      if (audioRef.current) {
-        audioRef.current.src = audioDataUri;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-      toast({
-        title: 'Audio Error',
-        description: 'Failed to generate or play audio. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setAudioLoading(null);
-    }
-  };
-
-
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
-      <audio ref={audioRef} className="hidden" />
       <div className="md:col-span-2 lg:col-start-1">
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
@@ -386,19 +359,6 @@ export default function DialectTranslator() {
                                 </div>
                               )}
                             </ActionDialog>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleListen(item.slang, item.district)}
-                            disabled={audioLoading !== null}
-                          >
-                            {audioLoading === item.district ? (
-                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Volume2 className="mr-2 h-4 w-4" />
-                            )}
-                            Listen
-                          </Button>
                         </div>
                       </CardFooter>
                     </Card>
