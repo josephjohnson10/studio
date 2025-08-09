@@ -2,6 +2,7 @@
 
 This is a NextJS starter in Firebase Studio that translates Manglish into various Malayalam dialects.
 
+## Easy Deployable
 ## Getting Started
 
 To get started, take a look at `src/app/page.tsx`.
