@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback, useRef } from 'react';
+import React, { useState, useTransition, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,8 +27,6 @@ import {
   Sprout,
   Trees,
   Wheat,
-  Volume2,
-  VolumeX
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -37,7 +35,6 @@ import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
 import { 
   getDialectTranslations, 
   analyzeSentenceApi,
-  textToSpeechApi,
   DialectTranslationServerInput 
 } from '@/app/actions';
 
@@ -83,30 +80,14 @@ const intensityLabels: { [key: number]: string } = {
   2: 'High',
 };
 
-type AudioState = {
-  [district: string]: {
-    loading: boolean;
-    data: string | null;
-  };
-};
-
-type PlayingState = {
-  district: string | null;
-  status: 'playing' | 'stopped';
-}
-
 export default function DialectTranslator() {
   const [translations, setTranslations] =
     useState<DialectTranslationOutput | null>(null);
   const [analysis, setAnalysis] = useState<SentenceAnalysisOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [loading, setLoading] = useState(false);
-  const [audioState, setAudioState] = useState<AudioState>({});
-  const [playingState, setPlayingState] = useState<PlayingState>({ district: null, status: 'stopped' });
-
 
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -144,8 +125,6 @@ export default function DialectTranslator() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setTranslations(null);
-    stopAudio();
-    setAudioState({});
 
     const intensityMap: Array<'low' | 'medium' | 'high'> = [
       'low',
@@ -173,48 +152,6 @@ export default function DialectTranslator() {
       setLoading(false);
     }
   }
-  
-  const stopAudio = () => {
-    if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-    }
-    setPlayingState({ district: null, status: 'stopped' });
-  }
-
-  const handlePlayAudio = async (text: string, district: string) => {
-    if (playingState.district === district && playingState.status === 'playing') {
-      stopAudio();
-      return;
-    }
-
-    stopAudio();
-    
-    // If we have the audio data already, just play it
-    if (audioState[district]?.data) {
-      if (audioRef.current) {
-        audioRef.current.src = audioState[district].data!;
-        audioRef.current.play().catch(e => console.error("Playback error:", e));
-        setPlayingState({ district, status: 'playing' });
-      }
-      return;
-    }
-
-    setAudioState(prev => ({...prev, [district]: { loading: true, data: null }}));
-    try {
-      const result = await textToSpeechApi({ text });
-      setAudioState(prev => ({...prev, [district]: { data: result.audioDataUri, loading: false}}));
-       if (audioRef.current) {
-        audioRef.current.src = result.audioDataUri;
-        audioRef.current.play().catch(e => console.error("Playback error:", e));
-        setPlayingState({ district, status: 'playing' });
-      }
-    } catch(error) {
-      toast({ title: 'Error', description: 'Failed to generate audio.', variant: 'destructive' });
-      setAudioState(prev => ({...prev, [district]: {...prev[district], loading: false}}));
-    }
-  };
-
 
   const handleCopyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -223,7 +160,6 @@ export default function DialectTranslator() {
 
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
-      <audio ref={audioRef} onEnded={stopAudio} />
       <div className="md:col-span-2 lg:col-start-1">
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
@@ -258,8 +194,6 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
-                  const currentAudioState = audioState[item.district] || { loading: false, data: null };
-                  const isPlaying = playingState.district === item.district && playingState.status === 'playing';
 
                   return (
                     <Card key={item.district} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
@@ -288,10 +222,6 @@ export default function DialectTranslator() {
                         </div>
                         <Separator className="my-2" />
                         <div className="flex items-center justify-start flex-wrap gap-1 w-full">
-                           <Button variant="ghost" size="sm" onClick={() => handlePlayAudio(item.slang, item.district)} disabled={currentAudioState.loading}>
-                             {currentAudioState.loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : isPlaying ? <VolumeX className="mr-2 h-4 w-4"/> : <Volume2 className="mr-2 h-4 w-4"/>}
-                            {isPlaying ? 'Stop' : 'Listen'}
-                          </Button>
                            <Button variant="ghost" size="sm" onClick={() => handleCopyToClipboard(item.slang)}>
                             <ClipboardCopy className="mr-2 h-4 w-4"/> Copy
                           </Button>
