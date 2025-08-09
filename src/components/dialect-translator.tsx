@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback, useRef } from 'react';
+import React, { useState, useTransition, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,8 +28,6 @@ import {
   Trees,
   Wheat,
   Info,
-  Volume2,
-  VolumeX,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -43,7 +41,6 @@ import {
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
-  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -159,10 +156,6 @@ export default function DialectTranslator() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   
-  const [playingDistrict, setPlayingDistrict] = useState<string | null>(null);
-  const [isAudioLoading, setIsAudioLoading] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -259,41 +252,6 @@ export default function DialectTranslator() {
     }
   };
   
-  const handleListen = async (text: string, district: string) => {
-    if (playingDistrict === district) {
-      audioRef.current?.pause();
-      setPlayingDistrict(null);
-      return;
-    }
-  
-    setIsAudioLoading(district);
-    setPlayingDistrict(null);
-  
-    try {
-      const { audioDataUri } = await textToSpeechApi({ text });
-      if (!audioRef.current) {
-        audioRef.current = new Audio();
-      }
-      audioRef.current.src = audioDataUri;
-      audioRef.current.play();
-      setPlayingDistrict(district);
-  
-      audioRef.current.onended = () => {
-        setPlayingDistrict(null);
-      };
-    } catch (error) {
-      toast({
-        title: 'Audio Error',
-        description: error instanceof Error ? error.message : 'Failed to generate audio.',
-        variant: 'destructive',
-      });
-      setPlayingDistrict(null);
-    } finally {
-      setIsAudioLoading(null);
-    }
-  };
-
-
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
       <div className="md:col-span-2 lg:col-start-1">
@@ -330,9 +288,7 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
-                  const isPlaying = playingDistrict === item.district;
-                  const isThisAudioLoading = isAudioLoading === item.district;
-
+                  
                   return (
                     <Card
                       key={item.district}
@@ -366,21 +322,6 @@ export default function DialectTranslator() {
                         </div>
                         <Separator className="my-2" />
                         <div className="flex items-center justify-start flex-wrap gap-1 w-full">
-                           <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleListen(item.slang, item.district)}
-                            disabled={!!isAudioLoading && !isThisAudioLoading}
-                          >
-                            {isThisAudioLoading ? (
-                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            ) : isPlaying ? (
-                              <VolumeX className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Volume2 className="mr-2 h-4 w-4" />
-                            )}
-                            {isPlaying ? 'Stop' : 'Listen'}
-                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
