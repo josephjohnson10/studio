@@ -56,7 +56,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from './ui/badge';
-import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 
 const formSchema = z.object({
   sentence: z
@@ -261,7 +261,7 @@ export default function DialectTranslator() {
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
       <audio ref={audioRef} onEnded={stopAudio} />
       <div className="md:col-span-2 lg:col-start-1">
-        <Card>
+        <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Dialect Translations (Malayalam)</CardTitle>
             <CardDescription>
@@ -298,7 +298,7 @@ export default function DialectTranslator() {
                   const isPlaying = playingState.district === item.district && playingState.status === 'playing';
 
                   return (
-                    <Card key={item.district} className="flex flex-col border-primary/20">
+                    <Card key={item.district} className="flex flex-col border-primary/20 hover:border-primary/50 transition-colors duration-300">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-3 font-headline text-lg">
                           <Icon className="h-6 w-6 text-primary" />
@@ -365,7 +365,7 @@ export default function DialectTranslator() {
         </Card>
       </div>
       <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-1 lg:col-start-2 lg:row-start-1">
-        <Card className="sticky top-20">
+        <Card className="sticky top-20 bg-card/50 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle>Converter</CardTitle>
                 <CardDescription>Enter your sentence in Manglish to get started.</CardDescription>
@@ -473,11 +473,11 @@ export default function DialectTranslator() {
       </div>
 
        <Dialog open={dialogState.loading || dialogState.data !== null} onOpenChange={() => setDialogState({ type: null, data: null, loading: false })}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="font-headline">
                 {dialogState.type === 'reverse' 
-                  ? `Reverse Translation: ${dialogState.district}` 
+                  ? `Standard Malayalam` 
                   : dialogState.type === 'insight' 
                   ? `Cultural Insight: ${dialogState.district}`
                   : "Loading..."}
@@ -491,18 +491,20 @@ export default function DialectTranslator() {
           {!dialogState.loading && (
             <>
               {dialogState.type === 'reverse' && dialogState.data && 'standardSentence' in dialogState.data && (
-                <>
-                  <DialogDescription>The slang sentence translated back to standard Malayalam.</DialogDescription>
-                  <p className="text-xl font-semibold text-center py-4 font-body">"{dialogState.data.standardSentence}"</p>
-                </>
+                <div className="py-4">
+                  <DialogDescription>From {dialogState.district} dialect:</DialogDescription>
+                  <blockquote className="mt-2 border-l-4 border-primary pl-4">
+                    <p className="text-xl font-medium text-center font-body text-foreground">"{dialogState.data.standardSentence}"</p>
+                  </blockquote>
+                </div>
               )}
               {dialogState.type === 'insight' && dialogState.data && 'insight' in dialogState.data && (
                  <>
                   <DialogDescription>Interesting facts about the {dialogState.district} dialect.</DialogDescription>
-                  <div className="prose prose-sm max-w-none pt-4">
+                  <div className="prose prose-sm max-w-none pt-4 text-foreground">
                     <p>{dialogState.data.insight}</p>
-                    <h4 className="font-semibold">Popular Phrases:</h4>
-                    <ul className='font-body'>
+                    <h4 className="font-semibold text-primary">Popular Phrases:</h4>
+                    <ul className='font-body list-disc pl-5 space-y-1'>
                       {dialogState.data.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
                     </ul>
                   </div>

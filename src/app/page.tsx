@@ -2,8 +2,8 @@ import DialectTranslator from '@/components/dialect-translator';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 sm:px-6">
         <h1 className="font-headline text-2xl md:text-3xl font-semibold text-primary flex items-center gap-3">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -22,7 +22,7 @@ export default function Home() {
             <path d="M17 12H7" />
           </svg>
           <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Bhasha Boli
+            Mallu Slangify
           </span>
         </h1>
       </header>
