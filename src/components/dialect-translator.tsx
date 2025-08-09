@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback, useRef } from 'react';
+import React, { useState, useTransition, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,14 +21,12 @@ import {
   Plane,
   Sailboat,
   Search,
-  Book,
   Repeat,
   Sparkles,
   Sprout,
   Trees,
   Wheat,
   Info,
-  Volume2,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -42,7 +40,6 @@ import {
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
-  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -157,9 +154,6 @@ export default function DialectTranslator() {
   const [culturalInsightsResult, setCulturalInsightsResult] = useState<CulturalInsightOutput | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  const [audioLoading, setAudioLoading] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -229,28 +223,6 @@ export default function DialectTranslator() {
     toast({ title: 'Copied!', description: 'Translation copied to clipboard.' });
   };
 
-  const handleListen = async (text: string, district: string) => {
-    setAudioLoading(district);
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    try {
-      const { audio } = await textToSpeechApi({ text });
-      if (audioRef.current) {
-        audioRef.current.src = audio;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-      toast({
-        title: 'Audio Error',
-        description: 'Failed to generate audio.',
-        variant: 'destructive',
-      });
-    } finally {
-      setAudioLoading(null);
-    }
-  };
-
   const handleReverseTranslate = async (slangSentence: string, district: string) => {
     setIsActionLoading(true);
     setActionError(null);
@@ -281,7 +253,6 @@ export default function DialectTranslator() {
   
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
-      <audio ref={audioRef} />
       <div className="md:col-span-2 lg:col-start-1">
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
@@ -316,7 +287,6 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
-                  const isAudioLoading = audioLoading === item.district;
                   
                   return (
                     <Card
@@ -357,19 +327,6 @@ export default function DialectTranslator() {
                             onClick={() => handleCopyToClipboard(item.slang)}
                           >
                             <ClipboardCopy className="mr-2 h-4 w-4" /> Copy
-                          </Button>
-                           <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleListen(item.slang, item.district)}
-                            disabled={!!audioLoading}
-                          >
-                            {isAudioLoading ? (
-                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Volume2 className="mr-2 h-4 w-4" />
-                            )}
-                            Listen
                           </Button>
                           <ActionDialog
                               title={`Reverse Translation: ${item.district}`}
