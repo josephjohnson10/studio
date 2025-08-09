@@ -395,9 +395,12 @@ export default function DialectTranslator() {
        <Dialog open={dialogState.loading || dialogState.data !== null} onOpenChange={() => setDialogState({ type: null, data: null, loading: false })}>
         <DialogContent>
           {dialogState.loading ? (
-            <div className="flex items-center justify-center p-8">
-              <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-            </div>
+             <DialogHeader>
+                <DialogTitle>Loading...</DialogTitle>
+                <div className="flex items-center justify-center p-8">
+                  <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            </DialogHeader>
           ) : (
             <>
               {dialogState.type === 'reverse' && dialogState.data && 'standardSentence' in dialogState.data && (
