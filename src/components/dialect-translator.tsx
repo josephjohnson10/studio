@@ -27,6 +27,7 @@ import {
   Trees,
   Wheat,
   Info,
+  Volume2,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -34,12 +35,14 @@ import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
 import type { ReverseTranslationOutput } from '@/ai/flows/reverse-translation';
 import type { CulturalInsightOutput } from '@/ai/flows/cultural-insights';
+import type { TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 
 import {
   getDialectTranslations,
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
+  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -157,6 +160,9 @@ export default function DialectTranslator() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [highlightedDistrict, setHighlightedDistrict] = useState<string | null>(null);
+  const [loadingAudioDistrict, setLoadingAudioDistrict] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -265,9 +271,29 @@ export default function DialectTranslator() {
     setHighlightedDistrict(district);
     handleGetCulturalInsights(district);
   }
+
+  const handleListen = async (text: string, district: string) => {
+    setLoadingAudioDistrict(district);
+    try {
+        const result: TextToSpeechOutput = await textToSpeechApi({ text });
+        if (audioRef.current) {
+            audioRef.current.src = result.audio;
+            await audioRef.current.play();
+        }
+    } catch (error) {
+        toast({
+            title: 'Audio Error',
+            description: 'Failed to generate audio. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+        setLoadingAudioDistrict(null);
+    }
+  };
   
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-8 max-w-7xl w-full mx-auto">
+      <audio ref={audioRef} />
       <div className="lg:col-span-2 xl:col-span-3">
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
@@ -311,7 +337,6 @@ export default function DialectTranslator() {
                         highlightedDistrict === item.district ? 'border-primary/80 scale-105 shadow-lg' : 'hover:scale-102'
                       )}
                       onMouseEnter={() => setHighlightedDistrict(item.district)}
-                      onMouseLeave={() => setHighlightedDistrict(translations.find(t => t.district === highlightedDistrict)?.district || null)}
                       onClick={() => handleCardClick(item.district)}
                     >
                       <CardHeader>
@@ -342,6 +367,22 @@ export default function DialectTranslator() {
                         </div>
                         <Separator className="my-2" />
                         <div className="flex items-center justify-start flex-wrap gap-1 w-full">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleListen(item.slang, item.district);
+                            }}
+                            disabled={loadingAudioDistrict === item.district}
+                          >
+                            {loadingAudioDistrict === item.district ? (
+                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Volume2 className="mr-2 h-4 w-4" />
+                            )}
+                            Listen
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -533,41 +574,41 @@ export default function DialectTranslator() {
             </Card>
         </div>
 
-        {culturalInsights && (
-          <div className="sticky top-[58rem]">
-            <Card>
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Info className="h-6 w-6 text-primary" />
-                    Cultural Insight
-                  </CardTitle>
-                  <CardDescription>{highlightedDistrict}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isActionLoading ? (
-                  <div className="flex items-center justify-center p-8">
-                    <LoaderCircle className="animate-spin h-8 w-8 text-primary" />
+        <div className="sticky top-[58rem]">
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Info className="h-6 w-6 text-primary" />
+                  Cultural Insight
+                </CardTitle>
+                <CardDescription>{highlightedDistrict ?? 'Select a district'}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isActionLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <LoaderCircle className="animate-spin h-8 w-8 text-primary" />
+                </div>
+              ) : actionError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
+              ): culturalInsights ? (
+                <>
+                  <p className="text-sm">{culturalInsights.insight}</p>
+                  <div>
+                    <h4 className="font-semibold mb-2">Popular Phrases:</h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                      {culturalInsights.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
+                    </ul>
                   </div>
-                ) : actionError ? (
-                  <Alert variant="destructive">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{actionError}</AlertDescription>
-                  </Alert>
-                ): (
-                  <>
-                    <p className="text-sm">{culturalInsights.insight}</p>
-                    <div>
-                      <h4 className="font-semibold mb-2">Popular Phrases:</h4>
-                      <ul className="list-disc list-inside space-y-2 text-sm">
-                        {culturalInsights.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
-                      </ul>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">Click on a district card or on the map to see cultural insights.</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
