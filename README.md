@@ -2,12 +2,7 @@
 
 This is a NextJS starter in Firebase Studio that translates Manglish into various Malayalam dialects.
 
-## Easy Deployable
 ## Getting Started
-
-To get started, take a look at `src/app/page.tsx`.
-
-## Local Development Setup
 
 To run this project locally, you will need a Gemini API key from Google AI Studio. This single key enables all AI-powered features, including dialect translation and Text-to-Speech (TTS).
 
