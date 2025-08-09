@@ -22,7 +22,7 @@ export default function Home() {
             <path d="M17 12H7" />
           </svg>
           <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Bhasha Boli
+            Mallu Slangify
           </span>
         </h1>
       </header>
