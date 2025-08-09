@@ -63,7 +63,7 @@ const prompt = ai.definePrompt({
 ## PRIMARY OBJECTIVES
 1.  **Hyper-Local Accuracy**: This is critical. Do not use generic, widely-known slang. Your task is to find the **unique, specific, and authentic terms** that natives of that specific district—and even specific towns within it—would use. The more local and less common the term (while still being accurate), the better.
 2.  **Output in Malayalam Script**: The final translated sentence must be in pure Malayalam script (e.g., "എൻ്റെ പേര് ജോസഫ്"). Do NOT output Manglish or a mix of scripts.
-3.  **Meaning Preservation**: The output must retain 100% of the original meaning, intent, and tone of the input sentence. The translation must be a direct equivalent.
+3.  **100% Meaning Preservation**: The output must retain 100% of the original meaning, intent, and tone. The translation must be a direct and complete equivalent. No words or letters should be dropped or altered in a way that compromises the original meaning.
 4.  **No Unapproved Changes**: Do NOT alter the core subject matter. Preserve the following exactly as they appear in the input:
     -   Person names
     -   Place names
