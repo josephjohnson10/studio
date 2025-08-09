@@ -1,35 +1,120 @@
-# Mallu Slangify
+# Mallu Slangify 🎯
 
-This is a NextJS starter in Firebase Studio that translates Manglish into various Malayalam dialects.
+## Basic Details
+**Team Name:** Homies
 
-## Getting Started
+**Team Members**
+- **Team Lead:** Joseph Johnson
 
-To run this project locally, you will need a Gemini API key from Google AI Studio. This single key enables all AI-powered features, including dialect translation and Text-to-Speech (TTS).
+---
 
-1.  **Get an API Key**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to create and copy your API key.
+## Project Description
+The Basic Aim is to Input a language and Generate the output as the same language in native slangs.
 
-2.  **Set Environment Variable**: Create or open the `.env` file in the root of the project and add your API key like this:
+### The Problem (that doesn't exist)
+The problem that doesn't exist here is that people having the same mother tongue have difficulty in speaking with other natives.
 
-    ```
-    GEMINI_API_KEY=YOUR_API_KEY_HERE
-    ```
+### The Solution (that nobody asked for)
+The only solution that exists is parsing a language and converting the same language with different slang without changing the meaning of the language.
 
-3.  **Install Dependencies and Run**:
-    ```bash
-    npm install
-    npm run dev
-    ```
+---
 
-The application will now run on `http://localhost:9002`.
+## Technical Details
 
-## Feature Architecture
+### Technologies/Components Used
 
-### Text-to-Speech (TTS) Audio Generation
+**For Software:**
 
-The audio pronunciation feature is built on three core components working together:
+-   **Languages used:** TypeScript, JavaScript, CSS
+-   **Frameworks used:** Next.js, React
+-   **Libraries used:** Genkit, Google AI for Node.js, ShadCN UI, Tailwind CSS, Lucide React, Zod, React Hook Form, `wav`.
+-   **Tools used:** Node.js, npm, Next.js CLI, Genkit CLI
 
-1.  **Backend AI Flow (`src/ai/flows/text-to-speech.ts`):** A server-side Genkit flow that calls the Google AI TTS model (`gemini-2.5-flash-preview-tts`) to convert a given text string into `MP3` audio format. It returns a ready-to-play base64 data URI.
+**For Hardware:**
 
-2.  **Server Action (`src/app/actions.ts`):** The `textToSpeechApi` function acts as a secure bridge between the frontend and the backend AI flow. It ensures that the API key and backend logic are never exposed to the client browser.
+-   **List main components:** Not Applicable
+-   **List specifications:** Not Applicable
+-   **List tools required:** Not Applicable
 
-3.  **Frontend Component (`src/components/dialect-translator.tsx`):** The UI includes a "Listen" button on each translation card. When clicked, this button calls the server action, receives the MP3 data, and plays it using a browser `<audio>` element.
+---
+
+## Implementation
+
+### For Software:
+
+**Installation**
+```bash
+# Set your Gemini API Key in a .env file
+GEMINI_API_KEY=YOUR_API_KEY_HERE
+
+# Install dependencies
+npm install
+```
+
+**Run**
+```bash
+npm run dev
+```
+The application will be available at `http://localhost:9002`.
+
+---
+
+## Project Documentation
+
+### For Software:
+
+**Screenshots (Add at least 3)**
+
+![Screenshot1](https://placehold.co/800x600.png?text=Main+UI)
+**Caption:** The main user interface where users input a Manglish sentence and select slang intensity.
+
+![Screenshot2](https://placehold.co/800x600.png?text=Translation+Results)
+**Caption:** Display of the translated sentence across all 14 districts of Kerala.
+
+![Screenshot3](https://placehold.co/800x600.png?text=Cultural+Insights)
+**Caption:** The cultural insights card showing interesting facts and popular phrases for a selected district.
+
+**Diagrams**
+
+![Workflow](https://placehold.co/800x400.png?text=Application+Architecture)
+**Caption:** The application follows a three-tier architecture: Frontend (React/Next.js), Server Actions (as a secure bridge), and Backend AI Flows (Genkit/Google AI).
+
+### For Hardware:
+
+**Schematic & Circuit**
+
+-   ![Circuit](https://placehold.co/600x400.png?text=Not+Applicable)
+    **Caption:** Not Applicable
+
+-   ![Schematic](https://placehold.co/600x400.png?text=Not+Applicable)
+    **Caption:** Not Applicable
+
+**Build Photos**
+
+-   ![Components](https://placehold.co/600x400.png?text=Not+Applicable)
+    **Caption:** Not Applicable
+
+-   ![Build](https://placehold.co/600x400.png?text=Not+Applicable)
+    **Caption:** Not Applicable
+
+-   ![Final](https://placehold.co/600x400.png?text=Not+Applicable)
+    **Caption:** Not Applicable
+
+---
+
+## Project Demo
+
+### Video
+- **[Add your demo video link here]** Explain what the video demonstrates
+
+### Additional Demos
+- **[Add any extra demo materials/links]**
+
+---
+
+## Team Contributions
+- **Joseph Johnson:** [Specific contributions]
+
+---
+
+Made with ❤️ at TinkerHub Useless Projects
