@@ -193,9 +193,9 @@ export default function DialectTranslator() {
       <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Dialect Translations</CardTitle>
+            <CardTitle>Dialect Translations (Malayalam)</CardTitle>
             <CardDescription>
-              Results from all 14 districts will appear here.
+              Results from all 14 districts will appear here in Malayalam script.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -233,8 +233,8 @@ export default function DialectTranslator() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="flex-grow">
-                        <p className="text-base font-medium text-foreground/90">
-                          "{item.slang}"
+                        <p className="text-xl font-medium text-foreground/90 font-body">
+                          {item.slang}
                         </p>
                       </CardContent>
                       <CardFooter className="flex flex-col items-start gap-2">
@@ -275,9 +275,9 @@ export default function DialectTranslator() {
              {!loading && !translations && (
                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
                     <Languages className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-bold">No translations yet</h3>
+                    <h3 className="text-xl font-bold">വിവർത്തനങ്ങളൊന്നും ഇതുവരെയില്ല</h3>
                     <p className="text-muted-foreground">
-                        Enter a sentence and click "Convert Dialects" to see the magic happen.
+                        ഒരു വാക്യം നൽകി "ഉപഭാഷകൾ മാറ്റുക" ക്ലിക്കുചെയ്യുക.
                     </p>
                 </div>
             )}
@@ -288,7 +288,7 @@ export default function DialectTranslator() {
         <Card className="sticky top-20">
             <CardHeader>
                 <CardTitle>Converter</CardTitle>
-                <CardDescription>Enter your sentence to get started.</CardDescription>
+                <CardDescription>Enter your sentence in Manglish to get started.</CardDescription>
             </CardHeader>
             <CardContent>
           <Form {...form}>
@@ -407,9 +407,9 @@ export default function DialectTranslator() {
                 <>
                   <DialogHeader>
                     <DialogTitle>Reverse Translation: {dialogState.district}</DialogTitle>
-                    <DialogDescription>The slang sentence translated back to standard Manglish.</DialogDescription>
+                    <DialogDescription>The slang sentence translated back to standard Malayalam.</DialogDescription>
                   </DialogHeader>
-                  <p className="text-lg font-semibold text-center py-4">"{dialogState.data.standardSentence}"</p>
+                  <p className="text-xl font-semibold text-center py-4 font-body">"{dialogState.data.standardSentence}"</p>
                 </>
               )}
               {dialogState.type === 'insight' && dialogState.data && 'insight' in dialogState.data && (
@@ -421,7 +421,7 @@ export default function DialectTranslator() {
                   <div className="prose prose-sm max-w-none">
                     <p>{dialogState.data.insight}</p>
                     <h4 className="font-semibold">Popular Phrases:</h4>
-                    <ul>
+                    <ul className='font-body'>
                       {dialogState.data.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
                     </ul>
                   </div>

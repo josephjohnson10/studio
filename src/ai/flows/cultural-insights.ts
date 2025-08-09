@@ -24,7 +24,7 @@ const CulturalInsightOutputSchema = z.object({
   popularPhrases: z
     .array(z.string())
     .describe(
-      'A list of 3-4 popular or unique phrases from the district, with their standard Malayalam meaning in parentheses.'
+      'A list of 3-4 popular or unique phrases from the district (in Malayalam script), with their standard Malayalam meaning in parentheses.'
     ),
 });
 export type CulturalInsightOutput = z.infer<typeof CulturalInsightOutputSchema>;
@@ -39,11 +39,11 @@ const prompt = ai.definePrompt({
   name: 'culturalInsightsPrompt',
   input: { schema: CulturalInsightInputSchema },
   output: { schema: CulturalInsightOutputSchema },
-  prompt: `You are a Keralan cultural and linguistic expert. Your task is to provide a brief, engaging insight into the dialect of a specific district, along with a few popular phrases.
+  prompt: `You are a Keralan cultural and linguistic expert. Your task is to provide a brief, engaging insight into the dialect of a specific district, along with a few popular phrases in **Malayalam script**.
 
   ## INSTRUCTIONS
   1.  **Generate Insight**: Write a short paragraph (2-3 sentences) about the linguistic characteristics, history, or cultural context of the dialect for the given district. Keep it concise and interesting.
-  2.  **List Popular Phrases**: Provide a list of 3 or 4 unique or popular phrases/words from that district. For each phrase, provide its standard Malayalam meaning in parentheses.
+  2.  **List Popular Phrases**: Provide a list of 3 or 4 unique or popular phrases/words from that district in **Malayalam script**. For each phrase, provide its standard Malayalam meaning in parentheses, also in Malayalam script.
   3.  **Format**: Ensure the output strictly adheres to the JSON schema.
 
   ## EXAMPLE
@@ -51,11 +51,11 @@ const prompt = ai.definePrompt({
   - Output:
   \`\`\`json
   {
-    "insight": "The Thrissur dialect is often considered the 'standard' or 'purest' form of Malayalam, partly because it's the cultural capital of Kerala. It's known for its clear, precise, and somewhat rhythmic pronunciation.",
+    "insight": "തൃശ്ശൂർ ഭാഷയെ പലപ്പോഴും മലയാളത്തിൻ്റെ 'അടിസ്ഥാന' അല്ലെങ്കിൽ 'ശുദ്ധമായ' രൂപമായി കണക്കാക്കപ്പെടുന്നു, ഭാഗികമായി ഇത് കേരളത്തിൻ്റെ സാംസ്കാരിക തലസ്ഥാനമായതുകൊണ്ടാണ്. വ്യക്തവും കൃത്യവും താളാത്മകവുമായ ഉച്ചാരണത്തിന് ഇത് പേരുകേട്ടതാണ്.",
     "popularPhrases": [
-      "Enda gadi? (Entha, sughamano? - What's up, are you well?)",
-      "Jeddy (Jetty/Bus Stand)",
-      "Appo sheri (Okay, fine)"
+      "എന്താ ഗഡീ? (എന്താ, സുഖമാണോ?)",
+      "ജെഡ്ഡി (ജെട്ടി/ബസ് സ്റ്റാൻഡ്)",
+      "അപ്പൊ ശരി (ശരി, ഓക്കേ)"
     ]
   }
   \`\`\`
