@@ -73,7 +73,7 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' }, // A suitable voice for Malayalam
+            prebuiltVoiceConfig: { voiceName: 'Murzim' }, // A more expressive voice
           },
         },
       },
