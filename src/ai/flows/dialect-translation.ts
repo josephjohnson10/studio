@@ -49,6 +49,7 @@ const prompt = ai.definePrompt({
     -   Numbers
     -   Embedded English words (keep them in Latin script as is).
 5.  **Meaning Check Factor**: For each output, include a “MeaningMatchScore” (0–100) estimating how close the slang version is to the original meaning (aim for a score of 95 or higher).
+6.  **Professional and Respectful Language**: All translations must be free of vulgarity, profanity, or any offensive content. The goal is to be authentic, not inappropriate.
 
 --------------------
 ## SLANG INTENSITY
@@ -120,4 +121,5 @@ const dialectTranslationFlow = ai.defineFlow(
     return output!;
   }
 );
+
 
