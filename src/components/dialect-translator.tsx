@@ -159,7 +159,7 @@ export default function DialectTranslator() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [highlightedDistrict, setHighlightedDistrict] = useState<string | null>(null);
-  const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const [loadingAudioDistrict, setLoadingAudioDistrict] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -265,8 +265,9 @@ export default function DialectTranslator() {
     }
   };
 
-  const handleListen = async (text: string) => {
-    setIsAudioLoading(true);
+  const handleListen = async (text: string, district: string) => {
+    if (loadingAudioDistrict) return;
+    setLoadingAudioDistrict(district);
     try {
       const { audioDataUri } = await textToSpeechApi({ text });
       if (audioRef.current) {
@@ -280,7 +281,7 @@ export default function DialectTranslator() {
         variant: 'destructive',
       });
     } finally {
-      setIsAudioLoading(false);
+      setLoadingAudioDistrict(null);
     }
   };
 
@@ -325,7 +326,8 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
-                  
+                  const isAudioLoading = loadingAudioDistrict === item.district;
+
                   return (
                     <Card
                       key={item.district}
@@ -368,8 +370,8 @@ export default function DialectTranslator() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleListen(item.slang)}}
-                            disabled={isAudioLoading}
+                            onClick={(e) => { e.stopPropagation(); handleListen(item.slang, item.district)}}
+                            disabled={!!loadingAudioDistrict}
                           >
                             {isAudioLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Volume2 className="mr-2 h-4 w-4" />}
                             Listen
@@ -421,181 +423,189 @@ export default function DialectTranslator() {
         </Card>
       </div>
       <div className="grid auto-rows-max items-start gap-4 lg:gap-8 lg:col-span-1 xl:col-span-1">
-        <Card className="sticky top-20 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Converter</CardTitle>
-            <CardDescription>
-              Enter your sentence in Manglish to get started.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                <FormField
-                  control={form.control}
-                  name="sentence"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-primary">
-                        Sentence (Manglish)
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="e.g., Ente peru Joseph. Njan evideya pokunnu?"
-                          className="resize-none min-h-[120px]"
-                          {...field}
-                          onChange={handleSentenceChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="h-12">
-                  {(isAnalyzing || analysis) && (
-                    <Card className="bg-secondary/50 border-primary/20">
-                      <CardContent className="p-3">
-                        {isAnalyzing ? (
-                          <div className="flex items-center gap-3 text-muted-foreground animate-pulse">
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Analyzing input...</span>
-                          </div>
-                        ) : analysis ? (
-                          <div className="flex items-center gap-3">
-                            <Search className="h-5 w-5 text-primary" />
-                            <div className="text-sm">
-                              <span className="font-semibold text-primary">
-                                Input Analysis:
-                              </span>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge
-                                  variant={
-                                    analysis.isStandard
-                                      ? 'default'
-                                      : 'destructive'
-                                  }
-                                >
-                                  {analysis.dialect}
-                                </Badge>
-                                <span className="text-muted-foreground text-xs">
-                                  ({analysis.confidence}%)
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : null}
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="slangIntensity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex justify-between items-center">
-                        <FormLabel className="text-base font-semibold text-primary">
-                          Slang Intensity
-                        </FormLabel>
-                        <span className="font-bold text-accent text-sm">
-                          {intensityLabels[field.value]}
-                        </span>
-                      </div>
-                      <FormControl>
-                        <Slider
-                          defaultValue={[1]}
-                          min={0}
-                          max={2}
-                          step={1}
-                          onValueChange={(value) => field.onChange(value[0])}
-                        />
-                      </FormControl>
-                      <div className="flex justify-between text-xs text-muted-foreground px-1">
-                        <span>Low</span>
-                        <span>Medium</span>
-                        <span>High</span>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full"
-                  size="lg"
-                >
-                  {loading ? (
-                    <>
-                      <LoaderCircle className="animate-spin mr-2" />
-                      Converting...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-5 w-5" />
-                      Convert Dialects
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-        
-        <Card className="sticky top-[30rem]">
+        <div className="sticky top-20">
+          <Card className="bg-card/50 backdrop-blur-sm">
             <CardHeader>
-                <CardTitle>Kerala Map</CardTitle>
+              <CardTitle>Converter</CardTitle>
+              <CardDescription>
+                Enter your sentence in Manglish to get started.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-                <KeralaMap 
-                    highlightedDistrict={highlightedDistrict}
-                    onDistrictClick={(district) => handleCardClick(district)}
-                />
-            </CardContent>
-        </Card>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
+                  <FormField
+                    control={form.control}
+                    name="sentence"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-primary">
+                          Sentence (Manglish)
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., Ente peru Joseph. Njan evideya pokunnu?"
+                            className="resize-none min-h-[120px]"
+                            {...field}
+                            onChange={handleSentenceChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-        {culturalInsights && (
-          <Card className="sticky top-[50rem]">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <Info className="h-6 w-6 text-primary" />
-                  Cultural Insight
-                </CardTitle>
-                <CardDescription>{highlightedDistrict}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isActionLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <LoaderCircle className="animate-spin h-8 w-8 text-primary" />
-                </div>
-              ) : actionError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{actionError}</AlertDescription>
-                </Alert>
-              ): (
-                <>
-                  <p className="text-sm">{culturalInsights.insight}</p>
-                  <div>
-                    <h4 className="font-semibold mb-2">Popular Phrases:</h4>
-                    <ul className="list-disc list-inside space-y-2 text-sm">
-                      {culturalInsights.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
-                    </ul>
+                  <div className="h-12">
+                    {(isAnalyzing || analysis) && (
+                      <Card className="bg-secondary/50 border-primary/20">
+                        <CardContent className="p-3">
+                          {isAnalyzing ? (
+                            <div className="flex items-center gap-3 text-muted-foreground animate-pulse">
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                              <span className="text-sm">Analyzing input...</span>
+                            </div>
+                          ) : analysis ? (
+                            <div className="flex items-center gap-3">
+                              <Search className="h-5 w-5 text-primary" />
+                              <div className="text-sm">
+                                <span className="font-semibold text-primary">
+                                  Input Analysis:
+                                </span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge
+                                    variant={
+                                      analysis.isStandard
+                                        ? 'default'
+                                        : 'destructive'
+                                    }
+                                  >
+                                    {analysis.dialect}
+                                  </Badge>
+                                  <span className="text-muted-foreground text-xs">
+                                    ({analysis.confidence}%)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
-                </>
-              )}
+
+                  <Separator />
+
+                  <FormField
+                    control={form.control}
+                    name="slangIntensity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex justify-between items-center">
+                          <FormLabel className="text-base font-semibold text-primary">
+                            Slang Intensity
+                          </FormLabel>
+                          <span className="font-bold text-accent text-sm">
+                            {intensityLabels[field.value]}
+                          </span>
+                        </div>
+                        <FormControl>
+                          <Slider
+                            defaultValue={[1]}
+                            min={0}
+                            max={2}
+                            step={1}
+                            onValueChange={(value) => field.onChange(value[0])}
+                          />
+                        </FormControl>
+                        <div className="flex justify-between text-xs text-muted-foreground px-1">
+                          <span>Low</span>
+                          <span>Medium</span>
+                          <span>High</span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <LoaderCircle className="animate-spin mr-2" />
+                        Converting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-5 w-5" />
+                        Convert Dialects
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
+        </div>
+        
+        <div className="sticky top-[34rem]">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Kerala Map</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <KeralaMap 
+                        highlightedDistrict={highlightedDistrict}
+                        onDistrictClick={(district) => handleCardClick(district)}
+                    />
+                </CardContent>
+            </Card>
+        </div>
+
+        {culturalInsights && (
+          <div className="sticky top-[58rem]">
+            <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Info className="h-6 w-6 text-primary" />
+                    Cultural Insight
+                  </CardTitle>
+                  <CardDescription>{highlightedDistrict}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isActionLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <LoaderCircle className="animate-spin h-8 w-8 text-primary" />
+                  </div>
+                ) : actionError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{actionError}</AlertDescription>
+                  </Alert>
+                ): (
+                  <>
+                    <p className="text-sm">{culturalInsights.insight}</p>
+                    <div>
+                      <h4 className="font-semibold mb-2">Popular Phrases:</h4>
+                      <ul className="list-disc list-inside space-y-2 text-sm">
+                        {culturalInsights.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
       <audio ref={audioRef} className="hidden" />
     </div>
   );
 }
+
+    
