@@ -27,7 +27,6 @@ import {
   Trees,
   Wheat,
   Info,
-  Volume2,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -41,7 +40,6 @@ import {
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
-  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -159,9 +157,7 @@ export default function DialectTranslator() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [highlightedDistrict, setHighlightedDistrict] = useState<string | null>(null);
-  const [loadingAudioDistrict, setLoadingAudioDistrict] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -265,26 +261,6 @@ export default function DialectTranslator() {
     }
   };
 
-  const handleListen = async (text: string, district: string) => {
-    if (loadingAudioDistrict) return;
-    setLoadingAudioDistrict(district);
-    try {
-      const { audioDataUri } = await textToSpeechApi({ text });
-      if (audioRef.current) {
-        audioRef.current.src = audioDataUri;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-       toast({
-        title: 'Audio Error',
-        description: 'Failed to generate audio. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingAudioDistrict(null);
-    }
-  };
-
   const handleCardClick = (district: string) => {
     setHighlightedDistrict(district);
     handleGetCulturalInsights(district);
@@ -326,7 +302,6 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
-                  const isAudioLoading = loadingAudioDistrict === item.district;
 
                   return (
                     <Card
@@ -367,15 +342,6 @@ export default function DialectTranslator() {
                         </div>
                         <Separator className="my-2" />
                         <div className="flex items-center justify-start flex-wrap gap-1 w-full">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleListen(item.slang, item.district)}}
-                            disabled={!!loadingAudioDistrict}
-                          >
-                            {isAudioLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Volume2 className="mr-2 h-4 w-4" />}
-                            Listen
-                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -603,9 +569,6 @@ export default function DialectTranslator() {
           </div>
         )}
       </div>
-      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }
-
-    
