@@ -29,7 +29,7 @@ import debounce from 'lodash.debounce';
 
 import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
-import { getDialectTranslations, analyzeSentence, DialectTranslationServerInput } from '@/app/actions';
+import { getDialectTranslations, analyzeSentenceApi, DialectTranslationServerInput } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,7 +94,7 @@ export default function DialectTranslator() {
       if (sentence.trim().length > 5) {
         startAnalyzing(async () => {
           try {
-            const result = await analyzeSentence({ sentence });
+            const result = await analyzeSentenceApi({ sentence });
             setAnalysis(result);
           } catch (error) {
             console.error('Failed to analyze sentence', error);
