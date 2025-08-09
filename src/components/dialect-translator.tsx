@@ -99,10 +99,14 @@ type DialogState = {
 type AudioState = {
   [district: string]: {
     loading: boolean;
-    playing: boolean;
     data: string | null;
   };
 };
+
+type PlayingState = {
+  district: string | null;
+  status: 'playing' | 'stopped';
+}
 
 export default function DialectTranslator() {
   const [translations, setTranslations] =
@@ -112,6 +116,8 @@ export default function DialectTranslator() {
   const [loading, setLoading] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>({ type: null, data: null, loading: false });
   const [audioState, setAudioState] = useState<AudioState>({});
+  const [playingState, setPlayingState] = useState<PlayingState>({ district: null, status: 'stopped' });
+
 
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -152,6 +158,7 @@ export default function DialectTranslator() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setTranslations(null);
+    stopAudio();
     setAudioState({});
 
     const intensityMap: Array<'low' | 'medium' | 'high'> = [
@@ -203,47 +210,47 @@ export default function DialectTranslator() {
     }
   };
   
-  const stopAllAudio = () => {
+  const stopAudio = () => {
     if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
     }
-    setAudioState(prev => {
-        const newState = { ...prev };
-        Object.keys(newState).forEach(d => {
-            newState[d] = { ...newState[d], playing: false };
-        });
-        return newState;
-    });
+    setPlayingState({ district: null, status: 'stopped' });
   }
 
   const handlePlayAudio = async (text: string, district: string) => {
-    stopAllAudio();
+    if (playingState.district === district && playingState.status === 'playing') {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
     
     // If we have the audio data already, just play it
     if (audioState[district]?.data) {
       if (audioRef.current) {
         audioRef.current.src = audioState[district].data!;
-        audioRef.current.play();
-        setAudioState(prev => ({...prev, [district]: {...prev[district], playing: true}}));
+        audioRef.current.play().catch(e => console.error("Playback error:", e));
+        setPlayingState({ district, status: 'playing' });
       }
       return;
     }
 
-    setAudioState(prev => ({...prev, [district]: { loading: true, playing: false, data: null }}));
+    setAudioState(prev => ({...prev, [district]: { loading: true, data: null }}));
     try {
       const result = await textToSpeechApi({ text });
-      setAudioState(prev => ({...prev, [district]: {...prev[district], data: result.audioDataUri, loading: false}}));
+      setAudioState(prev => ({...prev, [district]: { data: result.audioDataUri, loading: false}}));
        if (audioRef.current) {
         audioRef.current.src = result.audioDataUri;
-        audioRef.current.play();
-        setAudioState(prev => ({...prev, [district]: {...prev[district], playing: true}}));
+        audioRef.current.play().catch(e => console.error("Playback error:", e));
+        setPlayingState({ district, status: 'playing' });
       }
     } catch(error) {
       toast({ title: 'Error', description: 'Failed to generate audio.', variant: 'destructive' });
       setAudioState(prev => ({...prev, [district]: {...prev[district], loading: false}}));
     }
   };
+
 
   const handleCopyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -252,8 +259,8 @@ export default function DialectTranslator() {
 
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
-      <audio ref={audioRef} onEnded={stopAllAudio} />
-      <div className="md:col-span-2">
+      <audio ref={audioRef} onEnded={stopAudio} />
+      <div className="md:col-span-2 lg:col-start-1">
         <Card>
           <CardHeader>
             <CardTitle>Dialect Translations (Malayalam)</CardTitle>
@@ -287,7 +294,9 @@ export default function DialectTranslator() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {translations.map((item) => {
                   const Icon = districtIcons[item.district] || MapPin;
-                  const currentAudioState = audioState[item.district] || { loading: false, playing: false, data: null };
+                  const currentAudioState = audioState[item.district] || { loading: false, data: null };
+                  const isPlaying = playingState.district === item.district && playingState.status === 'playing';
+
                   return (
                     <Card key={item.district} className="flex flex-col border-primary/20">
                       <CardHeader>
@@ -315,9 +324,9 @@ export default function DialectTranslator() {
                         </div>
                         <Separator className="my-2" />
                         <div className="flex items-center justify-start flex-wrap gap-1 w-full">
-                          <Button variant="ghost" size="sm" onClick={() => handlePlayAudio(item.slang, item.district)} disabled={currentAudioState.loading}>
-                             {currentAudioState.loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : currentAudioState.playing ? <VolumeX className="mr-2 h-4 w-4"/> : <Volume2 className="mr-2 h-4 w-4"/>}
-                            {currentAudioState.playing ? 'Stop' : 'Listen'}
+                           <Button variant="ghost" size="sm" onClick={() => handlePlayAudio(item.slang, item.district)} disabled={currentAudioState.loading}>
+                             {currentAudioState.loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : isPlaying ? <VolumeX className="mr-2 h-4 w-4"/> : <Volume2 className="mr-2 h-4 w-4"/>}
+                            {isPlaying ? 'Stop' : 'Listen'}
                           </Button>
                            <Button variant="ghost" size="sm" onClick={() => handleCopyToClipboard(item.slang)}>
                             <ClipboardCopy className="mr-2 h-4 w-4"/> Copy
@@ -355,7 +364,7 @@ export default function DialectTranslator() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-1">
+      <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-1 lg:col-start-2 lg:row-start-1">
         <Card className="sticky top-20">
             <CardHeader>
                 <CardTitle>Converter</CardTitle>
@@ -467,9 +476,11 @@ export default function DialectTranslator() {
         <DialogContent>
           <DialogHeader>
               <DialogTitle>
-                {dialogState.loading && "Loading..."}
-                {!dialogState.loading && dialogState.type === 'reverse' && `Reverse Translation: ${dialogState.district}`}
-                {!dialogState.loading && dialogState.type === 'insight' && `Cultural Insight: ${dialogState.district}`}
+                {dialogState.type === 'reverse' 
+                  ? `Reverse Translation: ${dialogState.district}` 
+                  : dialogState.type === 'insight' 
+                  ? `Cultural Insight: ${dialogState.district}`
+                  : "Loading..."}
               </DialogTitle>
              {dialogState.loading && (
                 <div className="flex items-center justify-center p-8">
