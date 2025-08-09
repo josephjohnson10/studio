@@ -34,14 +34,9 @@ import debounce from 'lodash.debounce';
 
 import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
-import type { ReverseTranslationOutput } from '@/ai/flows/reverse-translation';
-import type { CulturalInsightOutput } from '@/ai/flows/cultural-insights';
-
 import { 
   getDialectTranslations, 
-  analyzeSentenceApi, 
-  reverseTranslateApi,
-  getCulturalInsightsApi,
+  analyzeSentenceApi,
   textToSpeechApi,
   DialectTranslationServerInput 
 } from '@/app/actions';
@@ -56,7 +51,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from './ui/badge';
-import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 
 const formSchema = z.object({
   sentence: z
@@ -89,13 +83,6 @@ const intensityLabels: { [key: number]: string } = {
   2: 'High',
 };
 
-type DialogState = {
-  type: 'reverse' | 'insight' | null;
-  data: ReverseTranslationOutput | CulturalInsightOutput | null;
-  loading: boolean;
-  district?: string;
-};
-
 type AudioState = {
   [district: string]: {
     loading: boolean;
@@ -114,7 +101,6 @@ export default function DialectTranslator() {
   const [analysis, setAnalysis] = useState<SentenceAnalysisOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [loading, setLoading] = useState(false);
-  const [dialogState, setDialogState] = useState<DialogState>({ type: null, data: null, loading: false });
   const [audioState, setAudioState] = useState<AudioState>({});
   const [playingState, setPlayingState] = useState<PlayingState>({ district: null, status: 'stopped' });
 
@@ -187,28 +173,6 @@ export default function DialectTranslator() {
       setLoading(false);
     }
   }
-
-  const handleReverseTranslate = async (slang: string, district: string) => {
-    setDialogState({ type: 'reverse', data: null, loading: true, district });
-    try {
-      const result = await reverseTranslateApi({ slangSentence: slang, district });
-      setDialogState({ type: 'reverse', data: result, loading: false, district });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to reverse translate.', variant: 'destructive' });
-      setDialogState({ type: null, data: null, loading: false });
-    }
-  };
-
-  const handleCulturalInsights = async (district: string) => {
-    setDialogState({ type: 'insight', data: null, loading: true, district });
-    try {
-      const result = await getCulturalInsightsApi({ district });
-      setDialogState({ type: 'insight', data: result, loading: false, district });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to get cultural insights.', variant: 'destructive' });
-      setDialogState({ type: null, data: null, loading: false });
-    }
-  };
   
   const stopAudio = () => {
     if (audioRef.current) {
@@ -331,20 +295,6 @@ export default function DialectTranslator() {
                            <Button variant="ghost" size="sm" onClick={() => handleCopyToClipboard(item.slang)}>
                             <ClipboardCopy className="mr-2 h-4 w-4"/> Copy
                           </Button>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" onClick={() => handleReverseTranslate(item.slang, item.district)}>
-                                <Repeat className="mr-2 h-4 w-4"/> Translate Back
-                              </Button>
-                            </DialogTrigger>
-                          </Dialog>
-                           <Dialog>
-                            <DialogTrigger asChild>
-                               <Button variant="ghost" size="sm" onClick={() => handleCulturalInsights(item.district)}>
-                                <Book className="mr-2 h-4 w-4"/> Insights
-                              </Button>
-                            </DialogTrigger>
-                          </Dialog>
                         </div>
                       </CardFooter>
                     </Card>
@@ -471,49 +421,6 @@ export default function DialectTranslator() {
           </CardContent>
         </Card>
       </div>
-
-       <Dialog open={dialogState.loading || dialogState.data !== null} onOpenChange={() => setDialogState({ type: null, data: null, loading: false })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-              <DialogTitle className="font-headline">
-                {dialogState.type === 'reverse' 
-                  ? `Standard Malayalam` 
-                  : dialogState.type === 'insight' 
-                  ? `Cultural Insight: ${dialogState.district}`
-                  : "Loading..."}
-              </DialogTitle>
-             {dialogState.loading && (
-                <div className="flex items-center justify-center p-8">
-                  <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            )}
-            </DialogHeader>
-          {!dialogState.loading && (
-            <>
-              {dialogState.type === 'reverse' && dialogState.data && 'standardSentence' in dialogState.data && (
-                <div className="py-4">
-                  <DialogDescription>From {dialogState.district} dialect:</DialogDescription>
-                  <blockquote className="mt-2 border-l-4 border-primary pl-4">
-                    <p className="text-xl font-medium text-center font-body text-foreground">"{dialogState.data.standardSentence}"</p>
-                  </blockquote>
-                </div>
-              )}
-              {dialogState.type === 'insight' && dialogState.data && 'insight' in dialogState.data && (
-                 <>
-                  <DialogDescription>Interesting facts about the {dialogState.district} dialect.</DialogDescription>
-                  <div className="prose prose-sm max-w-none pt-4 text-foreground">
-                    <p>{dialogState.data.insight}</p>
-                    <h4 className="font-semibold text-primary">Popular Phrases:</h4>
-                    <ul className='font-body list-disc pl-5 space-y-1'>
-                      {dialogState.data.popularPhrases.map((phrase, i) => <li key={i}>{phrase}</li>)}
-                    </ul>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
