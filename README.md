@@ -9,7 +9,7 @@ To get started, take a look at `src/app/page.tsx`.
 
 ## Local Development Setup
 
-To run this project locally, you will need a Gemini API key from Google AI Studio.
+To run this project locally, you will need a Gemini API key from Google AI Studio. This single key enables all AI-powered features, including dialect translation and Text-to-Speech (TTS).
 
 1.  **Get an API Key**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to create and copy your API key.
 
