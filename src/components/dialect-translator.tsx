@@ -1,7 +1,7 @@
 'use client';
 
 import type { ElementType } from 'react';
-import React, { useState, useTransition, useCallback } from 'react';
+import React, { useState, useTransition, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,7 +27,8 @@ import {
   Sprout,
   Trees,
   Wheat,
-  Info
+  Info,
+  Volume2,
 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
@@ -35,12 +36,14 @@ import type { DialectTranslationOutput } from '@/ai/flows/dialect-translation';
 import type { SentenceAnalysisOutput } from '@/ai/flows/sentence-analysis';
 import type { ReverseTranslationOutput } from '@/ai/flows/reverse-translation';
 import type { CulturalInsightOutput } from '@/ai/flows/cultural-insights';
+import type { TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 
 import {
   getDialectTranslations,
   analyzeSentenceApi,
   reverseTranslateApi,
   getCulturalInsightsApi,
+  textToSpeechApi,
   DialectTranslationServerInput,
 } from '@/app/actions';
 
@@ -75,6 +78,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { KeralaMap } from './kerala-map';
 
 const formSchema = z.object({
   sentence: z
@@ -150,11 +154,13 @@ export default function DialectTranslator() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // State for dialogs
   const [reverseTranslationResult, setReverseTranslationResult] = useState<ReverseTranslationOutput | null>(null);
   const [culturalInsightsResult, setCulturalInsightsResult] = useState<CulturalInsightOutput | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [audioLoading, setAudioLoading] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -252,9 +258,29 @@ export default function DialectTranslator() {
     }
   };
 
+  const handleListen = async (text: string, district: string) => {
+    setAudioLoading(district);
+    try {
+      const { audioDataUri } = await textToSpeechApi({ text });
+      if (audioRef.current) {
+        audioRef.current.src = audioDataUri;
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      toast({
+        title: 'Audio Error',
+        description: 'Failed to generate or play audio. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setAudioLoading(null);
+    }
+  };
+
 
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-[1fr_350px] lg:gap-8 max-w-7xl w-full mx-auto">
+      <audio ref={audioRef} className="hidden" />
       <div className="md:col-span-2 lg:col-start-1">
         <Card className="bg-card/50 backdrop-blur-sm">
           <CardHeader>
@@ -360,6 +386,19 @@ export default function DialectTranslator() {
                                 </div>
                               )}
                             </ActionDialog>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleListen(item.slang, item.district)}
+                            disabled={audioLoading !== null}
+                          >
+                            {audioLoading === item.district ? (
+                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Volume2 className="mr-2 h-4 w-4" />
+                            )}
+                            Listen
+                          </Button>
                         </div>
                       </CardFooter>
                     </Card>
@@ -368,15 +407,15 @@ export default function DialectTranslator() {
               </div>
             )}
             {!loading && !translations && (
-              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">
-                <Languages className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-bold">
-                  വിവർത്തനങ്ങളൊന്നും ഇതുവരെയില്ല
-                </h3>
-                <p className="text-muted-foreground">
-                  ഒരു വാക്യം നൽകി "ഉപഭാഷകൾ മാറ്റുക" ക്ലിക്കുചെയ്യുക.
-                </p>
-              </div>
+               <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px] bg-secondary/30">
+                 <KeralaMap className="w-full max-w-md h-auto" highlightedDistricts={[]} />
+                 <h3 className="text-xl font-bold mt-4">
+                   Translate Manglish to Local Dialects
+                 </h3>
+                 <p className="text-muted-foreground">
+                   Enter a sentence to see it translated into the slangs of all 14 Kerala districts.
+                 </p>
+               </div>
             )}
           </CardContent>
         </Card>
