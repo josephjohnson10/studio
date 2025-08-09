@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Text-to-Speech (TTS) AI agent.
+ * @fileOverview A Text-to-Speech (TTS) AI agent that converts text into WAV audio format.
  *
  * - textToSpeech - A function that handles the TTS process.
  * - TextToSpeechInput - The input type for the textToSpeech function.
@@ -10,6 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'genkit';
+import wav from 'wav';
 
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to be converted to speech.'),
@@ -20,7 +21,7 @@ const TextToSpeechOutputSchema = z.object({
   audio: z
     .string()
     .describe(
-      "The generated audio as a Base64-encoded MP3 data URI."
+      'The generated audio as a Base64-encoded WAV data URI.'
     ),
 });
 export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
@@ -46,9 +47,6 @@ const textToSpeechFlow = ai.defineFlow(
           voiceConfig: {
             prebuiltVoiceConfig: { voiceName: 'Algenib' },
           },
-          outputConfig: {
-            audioFormat: 'MP3',
-          },
         },
       },
       prompt: text,
@@ -58,8 +56,42 @@ const textToSpeechFlow = ai.defineFlow(
       throw new Error('No audio media returned from the model.');
     }
 
+    const audioBuffer = Buffer.from(
+        media.url.substring(media.url.indexOf(',') + 1),
+        'base64'
+    );
+    
+    const wavAudio = await toWav(audioBuffer);
+
     return {
-      audio: media.url,
+      audio: 'data:audio/wav;base64,' + wavAudio,
     };
   }
 );
+
+async function toWav(
+    pcmData: Buffer,
+    channels = 1,
+    rate = 24000,
+    sampleWidth = 2
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const writer = new wav.Writer({
+        channels,
+        sampleRate: rate,
+        bitDepth: sampleWidth * 8,
+      });
+  
+      let bufs = [] as any[];
+      writer.on('error', reject);
+      writer.on('data', function (d) {
+        bufs.push(d);
+      });
+      writer.on('end', function () {
+        resolve(Buffer.concat(bufs).toString('base64'));
+      });
+  
+      writer.write(pcmData);
+      writer.end();
+    });
+  }
