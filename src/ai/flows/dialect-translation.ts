@@ -36,20 +36,40 @@ const prompt = ai.definePrompt({
   name: 'dialectTranslationPrompt',
   input: {schema: DialectTranslationInputSchema},
   output: {schema: DialectTranslationOutputSchema},
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+    ],
+  },
   prompt: `You are an AI Malayalam dialect converter. Your expertise is in converting Manglish (Malayalam written in Latin script) into authentic, native-sounding slang in **Malayalam script** for all 14 districts of Kerala. Your goal is to capture the true, hyper-local flavor of each region.
 
 --------------------
 ## PRIMARY OBJECTIVES
-1.  **Output in Malayalam Script**: The final translated sentence must be in pure Malayalam script (e.g., "എൻ്റെ പേര് ജോസഫ്"). Do NOT output Manglish or a mix of scripts.
-2.  **Meaning Preservation**: The output must retain 100% of the original meaning, intent, and tone of the input sentence. The translation must be a direct equivalent.
-3.  **Hyper-Local Accuracy**: This is critical. Do not use generic, widely-known slang. Your task is to find the **unique, specific, and authentic terms** that natives of that specific district—and even specific towns within it—would use. The more local and less common the term (while still being accurate), the better.
-4.  **No Unapproved Changes**: Do NOT alter the core subject matter. Preserve the following exactly as they appear in the input:
+1.  **Professional and Respectful Language**: This is the most important rule. Strictly prohibit any form of vulgarity, profanity, or any offensive content. The goal is to be authentic and respectful, not inappropriate or obscene. All output must be suitable for a general audience.
+2.  **Output in Malayalam Script**: The final translated sentence must be in pure Malayalam script (e.g., "എൻ്റെ പേര് ജോസഫ്"). Do NOT output Manglish or a mix of scripts.
+3.  **Meaning Preservation**: The output must retain 100% of the original meaning, intent, and tone of the input sentence. The translation must be a direct equivalent.
+4.  **Hyper-Local Accuracy**: This is critical. Do not use generic, widely-known slang. Your task is to find the **unique, specific, and authentic terms** that natives of that specific district—and even specific towns within it—would use. The more local and less common the term (while still being accurate), the better.
+5.  **No Unapproved Changes**: Do NOT alter the core subject matter. Preserve the following exactly as they appear in the input:
     -   Person names
     -   Place names
     -   Numbers
     -   Embedded English words (keep them in Latin script as is).
-5.  **Meaning Check Factor**: For each output, include a “MeaningMatchScore” (0–100) estimating how close the slang version is to the original meaning (aim for a score of 95 or higher).
-6.  **Professional and Respectful Language**: All translations must be free of vulgarity, profanity, or any offensive content. The goal is to be authentic, not inappropriate.
+6.  **Meaning Check Factor**: For each output, include a “MeaningMatchScore” (0–100) estimating how close the slang version is to the original meaning (aim for a score of 95 or higher).
 
 --------------------
 ## SLANG INTENSITY
@@ -121,5 +141,6 @@ const dialectTranslationFlow = ai.defineFlow(
     return output!;
   }
 );
+
 
 
